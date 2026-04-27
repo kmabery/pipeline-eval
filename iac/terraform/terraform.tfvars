@@ -1,4 +1,9 @@
-evaluation_id          = "pipeline-eval"
-project_name           = "pipeline-eval"
-environment            = "eval"
-aws_region             = "us-east-1"
+evaluation_id       = "pipeline-eval"
+project_name        = "pipeline-eval"
+environment         = "eval"
+aws_region          = "us-east-1"
+vpc_id              = "vpc-0b9df3f9e9a04e451" # SandboxVPC
+github_org          = "kmabery"
+github_repo         = "pipeline-eval"
+github_branches     = ["refs/heads/main"]
+github_environments = ["production"]
