@@ -1,0 +1,18 @@
+# Per-evaluation Terraform state never lives in the seed
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# .NET / Aspire
+bin/
+obj/
+*.user
+*.suo
+
+# Front-end
+node_modules/
+dist/
+playwright-report/
+test-results/
+.vite/

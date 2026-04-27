@@ -1,0 +1,16 @@
+# Pull-request CI only. Pushes to main use CI-CD-Deploy (ci-cd-deploy.yml).
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    # Docs-only PRs skip CI to match main-branch path filtering; merge still requires review rules you configure.
+    paths-ignore:
+      - "docs/**"
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/reusable-ci.yml

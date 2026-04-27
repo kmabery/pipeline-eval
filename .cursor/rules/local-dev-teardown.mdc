@@ -1,0 +1,7 @@
+---
+description: After local AppHost, E2E, or Playwright test runs, tear down long-lived dev processes.
+globs: tests/**,src/PipelineEval.Host/**,src/front-end/**/*.spec.ts,.github/workflows/*ci*.yml
+alwaysApply: false
+---
+
+After any session that starts **`dotnet run --project src/PipelineEval.Host`**, runs **Playwright local**, **PipelineEval.E2ETests**, or otherwise leaves **PipelineEval.Host** / **PipelineEval.Api** running, follow [`.cursor/skills/local-dev-teardown/SKILL.md`](../skills/local-dev-teardown/SKILL.md): verify and **stop** those processes before finishing (Windows: `Get-Process` / `Stop-Process` for `PipelineEval.*`).

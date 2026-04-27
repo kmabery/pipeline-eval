@@ -1,0 +1,22 @@
+---
+description: Triage and route stakeholder or user feedback not tied to a formal phase-plan row; Analyst orchestrates; closure gates unchanged
+alwaysApply: false
+---
+
+# Stakeholder feedback triage (ad-hoc)
+
+Use when the user reports **bugs**, **UX issues**, **production feedback**, or **confusion** that are **not** explicitly listed in `docs/phase-plan.md` (if used).
+
+## Intake (Analyst Orchestrator)
+
+1. **Reproduce** — Steps, environment (local vs deployed).
+2. **Classify** — Auth, API client, placeholder UI, routing, pipeline/deploy only, etc.
+3. **Delegate** — See `.cursor/skills/analyst-stakeholder-feedback/SKILL.md`. Prefer **Frontend** or **Backend** for code; **SDET** for E2E **and** deployed diagnosis / observability (`.cursor/skills/diagnose-deployed-apps/SKILL.md`); **DevOps** for CI.
+4. **Record** — Add a short note to `docs/evaluation-report.md` when the issue is material.
+5. **Redeploy (mandatory when code or config changes)** — If triage produces **any** deployable change, **DevOps must** run the canonical GitHub Actions workflow **ci-cd-deploy.yml** after fixes are **committed and pushed** to **`main`** on **`git@github.com:kmabery/pipeline-eval.git`** (SSH), per `.cursor/skills/devops-github-actions-ci-aws/SKILL.md`. **Triage is not finished** until that run is at least **started/queued** and the **run ID** is recorded.
+   **Exception:** documentation-only edits with **zero** deployable artifact change — note “no redeploy required” explicitly.
+
+## What this rule does **not** relax
+
+- **Phase closure** — `.cursor/rules/phase-closure-gate.mdc` still applies.
+- **Expanding feedback loop** — `.cursor/rules/expanding-feedback-loop.mdc` when a milestone is in scope.

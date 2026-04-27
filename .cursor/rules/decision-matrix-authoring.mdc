@@ -1,0 +1,55 @@
+---
+description: Decision-matrix authoring — write-lanes for criteria.yaml; rendering + validation gates
+alwaysApply: true
+---
+
+# Decision-matrix authoring
+
+Source of truth: [`docs/decision-matrix/criteria.yaml`](../../docs/decision-matrix/criteria.yaml). Rendered views live in [`docs/phase-plan.md`](../../docs/phase-plan.md), [`docs/evaluation-report.md`](../../docs/evaluation-report.md), and archived snapshots under [`docs/evaluation-reports/`](../../docs/evaluation-reports/) between the `matrix:begin` / `matrix:end` HTML-comment markers. **Never hand-edit between the markers.**
+
+## Write-lanes
+
+| Agent | May edit | May NOT edit |
+|-------|----------|--------------|
+| **SDET validator** (phase 1) | `vendors.gha.*` for every criterion | `vendors.ado.*`; any top-level field |
+| **SDET validator** (phase 2) | `vendors.ado.*` for every criterion | `vendors.gha.*`; any top-level field |
+| **Analyst orchestrator** (any phase) | Criterion CRUD (`id`, `name`, `group`, `weight`, `whyItMatters`, `evidenceToCollect`, `commonNotes`); run renderer; refresh snapshots | Vendor cells (those are the SDET's) |
+| **Analyst orchestrator** (phase 3) | `docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-3.json` (`synthesis.*`); locked final snapshot | Vendor cells in `criteria.yaml` — phase 3 is **read-only** for vendor data |
+| **Phase auditor** (any phase) | Read-only | Anything |
+
+SDET vendor-cell edits must set `updatedInPhase` to the current phase number. Moving a rating off `tbd` requires at least one citation URL in `citations[]`.
+
+## Required commands after any edit
+
+```bash
+node scripts/validate-decision-matrix.mjs
+node scripts/render-decision-matrix.mjs --target phase-plan
+node scripts/render-decision-matrix.mjs --target index
+# Snapshot: regenerate the current phase's archived report
+node scripts/render-decision-matrix.mjs --target snapshot --path docs/evaluation-reports/<file>
+# Phase 3 adds --final to the snapshot render.
+```
+
+Rerun both validators before closing a phase:
+
+```bash
+node scripts/validate-decision-matrix.mjs
+node scripts/validate-phase-evidence.mjs
+```
+
+## Auditor checks (blocks closure if any fail)
+
+- **Write-lane violation:** a vendor cell was modified outside its phase (check `updatedInPhase` against the `phase` field in `docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-<n>.json`).
+- **Empty `matrixEdits[]`** for an in-scope vendor phase without an explicit `matrixEditsNote` rationale.
+- **Renderer drift:** the rendered block between the markers does not match a fresh run of `render-decision-matrix.mjs` against the current YAML.
+- **Weight sum invalid:** weights do not sum to 100.
+- **Missing vendor block:** a criterion has fewer than two vendor entries (`gha`, `ado`), or an unexpected vendor key.
+- **Phase 3 synthesis missing:** `synthesis.weightedSignals`, `synthesis.gapList[]`, or `synthesis.recommendation` absent or empty; `matrixEdits[]` not empty.
+- **Tbd without reason:** a non-`tbd` rating lacks a citation; or a `tbd` rating has `updatedInPhase` set.
+
+## Cross-references
+
+- Phase lock: [`pipeline-vendor-phase.mdc`](pipeline-vendor-phase.mdc).
+- Closure gate vocabulary: [`phase-closure-gate.mdc`](phase-closure-gate.mdc), [`phase-gate-outcomes.mdc`](phase-gate-outcomes.mdc).
+- SDET + Analyst checklists: [`../skills/decision-matrix-evidence/SKILL.md`](../skills/decision-matrix-evidence/SKILL.md).
+- Phase map: [`../skills/pipeline-evaluation-phases/SKILL.md`](../skills/pipeline-evaluation-phases/SKILL.md).

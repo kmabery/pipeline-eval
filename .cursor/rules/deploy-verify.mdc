@@ -1,0 +1,9 @@
+---
+description: Pointer — post-deploy verification runbook lives in the post-deploy-verify skill
+globs: {pipelines/**,.github/workflows/**,iac/**,tests/e2e/deployed-smoke/**}
+alwaysApply: false
+---
+
+# Post-deploy verification
+
+When working under `pipelines/`, `.github/workflows/`, `iac/`, or `tests/e2e/deployed-smoke/` for deploy validation, follow [`.cursor/skills/post-deploy-verify/SKILL.md`](../skills/post-deploy-verify/SKILL.md).

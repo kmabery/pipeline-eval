@@ -1,0 +1,25 @@
+---
+description: Expanding feedback loop gate for phase handoffs
+alwaysApply: true
+---
+
+# Expanding feedback loop gate
+
+For PRD phase work, phase-plan execution, or handoffs between specialists, enforce this order (adjust test commands and paths to your repo):
+
+1. **Developer gate** — **Backend** and **Frontend** each finish scoped work and record local evidence (unit/integration and component tests as applicable).
+2. **SDET local gate** — Local E2E / smoke validation **and** local observability (logs/traces/metrics via Aspire) before DevOps queues “proof” CI runs.
+3. **DevOps gate** — Queue, monitor, diagnose, and retry until **all** required CI jobs are green: `.github/workflows/` and [`.cursor/skills/devops-github-actions-ci-aws/SKILL.md`](../skills/devops-github-actions-ci-aws/SKILL.md).
+4. **AWS SA gate** — After green CI, **AWS CLI** architecture drift validation vs `docs/architecture/` and `iac/terraform/` ([`.cursor/agents/aws-solution-architect.md`](../agents/aws-solution-architect.md)).
+5. **SDET observability gate** — Deploy-window observability (metrics/logs/traces tied to the succeeded run, or explicit documented gap) before Analyst handoff.
+6. **Analyst gate** — Report aligns with evidence before closure language.
+7. **Evidence persistence gate** — After the Analyst step, `docs/phase-evidence/`, `docs/evaluation-reports/`, and `docs/evaluation-report.md` (when changed) are **committed and pushed** to **`main`** (second bookend: **§2b**; **§2a** remains the pre-pipeline commit) per [`.cursor/skills/devops-github-actions-ci-aws/SKILL.md`](../skills/devops-github-actions-ci-aws/SKILL.md).
+
+Use the detailed procedures in:
+
+- [`.cursor/cursor-orchestrator.md`](../cursor-orchestrator.md)
+- [`.cursor/skills/backend-phase-evidence/SKILL.md`](../skills/backend-phase-evidence/SKILL.md)
+- [`.cursor/skills/react-phase-evidence/SKILL.md`](../skills/react-phase-evidence/SKILL.md)
+- [`.cursor/skills/sdet-phase-evidence/SKILL.md`](../skills/sdet-phase-evidence/SKILL.md) — E2E **and** observability (local + deploy-window)
+- [`.cursor/skills/devops-github-actions-ci-aws/SKILL.md`](../skills/devops-github-actions-ci-aws/SKILL.md)
+- [`.cursor/agents/aws-solution-architect.md`](../agents/aws-solution-architect.md)

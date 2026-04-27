@@ -1,0 +1,67 @@
+# Invoked via workflow_call from CI (PR) and CI-CD-Deploy (main).
+name: Reusable CI
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      # Linux agents cannot build net*-windows WinForms / Windows Service samples in PipelineEval.slnx.
+      # Use PipelineEval.CrossPlatform.slnf for a cross-platform solution build, or build sample projects on Windows.
+      - name: Restore and build API
+        run: |
+          dotnet restore src/services/PipelineEval.Api/PipelineEval.Api.csproj
+          dotnet build src/services/PipelineEval.Api/PipelineEval.Api.csproj -c Release --no-restore
+
+      - name: Restore and build Gateway
+        run: |
+          dotnet restore src/gateway/PipelineEval.Gateway/PipelineEval.Gateway.csproj
+          dotnet build src/gateway/PipelineEval.Gateway/PipelineEval.Gateway.csproj -c Release --no-restore
+
+      - name: Unit tests (.NET)
+        run: dotnet test tests/PipelineEval.UnitTests/PipelineEval.UnitTests.csproj -c Release
+
+      - name: Integration tests (.NET, in-memory API)
+        run: dotnet test tests/PipelineEval.IntegrationTests/PipelineEval.IntegrationTests.csproj -c Release
+
+      - name: E2E tests (Aspire AppHost via dotnet run; SIGINT on Linux then teardown)
+        run: dotnet test tests/PipelineEval.E2ETests/PipelineEval.E2ETests.csproj -c Release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/front-end/PipelineEval.Web/package-lock.json
+
+      - name: Build web
+        working-directory: src/front-end/PipelineEval.Web
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform fmt and validate
+        working-directory: iac/terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate

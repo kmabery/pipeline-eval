@@ -1,0 +1,71 @@
+topic:
+  id: pipeline-eval
+  slug: pipeline-eval
+  title: Pipeline Evaluations
+  shortTitle: pipeline-eval
+  verifyByDate: 2026-04-27
+  description: Evaluate ADO vs gha for our standard pipelines
+candidates:
+  - id: gha
+    displayName: GitHub Actions
+    phase: 1
+    expertBlock: devops-github-actions-operator.md
+  - id: ado
+    displayName: Azure Devops
+    phase: 2
+    expertBlock: devops-pipeline-operator.md
+finalMatrix:
+  phase: 3
+  owner: analyst-orchestrator
+  outputs:
+    - docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-3.json
+    - docs/evaluation-reports/evaluation-report-MM-dd-yyyy-HHmmss-phase-3*.md
+ratingModel:
+  id: pass-caveat-fail-tbd
+  values:
+    pass:
+      icon: OK
+      score: 1
+      meaning: Meets criterion
+    caveat:
+      icon: WARN
+      score: 0.5
+      meaning: Works with workarounds or trial required
+    fail:
+      icon: FAIL
+      score: 0
+      meaning: Missing or not viable as primary path
+    tbd:
+      icon: '-'
+      score: 
+      meaning: Not yet assessed for this candidate phase
+weightTotal: 100
+generated:
+  skills: []
+  rules: []
+  phases:
+    - .cursor/plans/phases/phase-1-gha.md
+    - .cursor/plans/phases/phase-2-ado.md
+    - .cursor/plans/phases/phase-3-final-matrix.md
+  docs:
+    - docs/phase-plan.md
+    - docs/decision-matrix/README.md
+handAuthored:
+  agents:
+    - .cursor/agents/analyst-orchestrator.md
+    - .cursor/agents/aws-solution-architect.md
+    - .cursor/agents/backend-implementer.md
+    - .cursor/agents/devops-github-actions-operator.md
+    - .cursor/agents/devops-pipeline-operator.md
+    - .cursor/agents/phase-auditor.md
+    - .cursor/agents/react-implementer.md
+    - .cursor/agents/sdet-validator.md
+  skills: []
+  docs:
+    - docs/decision-matrix/criteria.yaml
+    - docs/evaluation-report.md
+deliverables:
+  perSurface:
+    - ui
+    - api
+  required: []

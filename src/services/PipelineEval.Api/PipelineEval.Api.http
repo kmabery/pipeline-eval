@@ -1,0 +1,6 @@
+@PipelineEval.Api_HostAddress = http://localhost:5118
+
+GET {{PipelineEval.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

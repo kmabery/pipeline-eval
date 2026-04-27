@@ -1,0 +1,45 @@
+---
+description: Deploy-cycle phase gates must record Failed when incomplete; self-heal before final failure; applies to all phase-MM-dd-yyyy-HHmmss-<n> evidence JSON
+alwaysApply: true
+---
+
+# Phase gate outcomes (all phases)
+
+Applies to **every** `docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-<n>.json` (replace prior sidecar for that phase number on rerun) and matching sections in `docs/evaluation-report.md` / `docs/evaluation-reports/*.md` when a run claims or targets a **full delivery cycle** (deploy proof, canonical CI, deployed SDET, SDET observability window) per [`docs/phase-plan.md`](../../docs/phase-plan.md) and [`.cursor/cursor-orchestrator.md`](../cursor-orchestrator.md).
+
+## Separate "content evidence" from "deploy cycle gate"
+
+- **Content / research / vendor-evidence work** can be **Implemented** (e.g. vendor docs read, code integration, local tests).
+- **Deploy cycle gate** (succeeded vendor pipeline, deployed smoke/E2E where required, pipeline run URL captured) is **Passed** or **Failed** as a unit.
+
+If the phase **aims** at full-cycle closure (default unless `phasePlanException: "doc_only"` is set in JSON and the evaluation report states doc-only) and **any** of these are missing after a good-faith **self-heal** attempt ([`.cursor/skills/phase-gate-self-heal/SKILL.md`](../skills/phase-gate-self-heal/SKILL.md)):
+
+| Gate | Failed when |
+|------|-------------|
+| **DevOps (phase 1)** | `devops.githubActions.runId` / `runUrl` / `conclusion` are not all set to a **succeeded** `ci-cd-deploy.yml` run on `git@github.com:kmabery/pipeline-eval.git`, `main` |
+| **DevOps (phase 2)** | `devops.azurePipelines.buildId` / `runUrl` / `conclusion` are not all set to a **succeeded** `pipeline-eval-cd` run in `https://dev.azure.com/ECI-LBMH/LBMH-POC` |
+| **SDET** | `sdet.deployedE2E.status` is `blocked` or `failed`, or deployed URLs were never run when the plan requires deployed proof |
+| **Pipeline run URL** | `evidenceLinks.pipelineRunUrl` is null or non-HTTPS for a vendor phase that targets full delivery cycle |
+
+Then:
+
+1. Set **`phaseGateOutcome`** to **`failed_incomplete`** in `phase-MM-dd-yyyy-HHmmss-<n>.json` (required field for new/updated sidecars).
+2. Set **`deployCycleGate.outcome`** to **`failed`** with **`reasons`** array (strings).
+3. In **`docs/evaluation-report.md`**, use **Failed (incomplete)** or **Deploy cycle gate: Failed** for the full-cycle line — do **not** describe the phase as a successful evaluation run for deploy proof.
+4. **`auditorProposedState`** for the **deploy cycle** may be **`Failed`** while **content** evidence can remain **`Implemented`** — use dual labels or the structured fields above so narrative does not contradict JSON.
+
+## Forbidden language when `phaseGateOutcome` is `failed_incomplete`
+
+Do **not** imply the **deploy validation phase** succeeded. Avoid: "evaluation ran successfully", "full cycle complete", "Verified", "Complete" for deploy milestones, or "Implemented" **without** clarifying that it refers only to vendor-evidence / code content.
+
+## Doc-only exception
+
+If the phase is **explicitly doc-only** in `docs/phase-plan.md` / `docs/evaluation-report.md` **and** `phasePlanException: "doc_only"` is set in `phase-MM-dd-yyyy-HHmmss-<n>.json`, the deploy gate **does not apply**; do **not** set `failed_incomplete` for missing CI — instead set `fullCycleMode` / `phasePlanException` consistently.
+
+## Manual verification URLs
+
+When CI or AWS is temporarily unreachable, still populate **`manualVerificationUrls`** in JSON after self-heal (from Terraform outputs, workflow summary, or pipeline logs): at minimum `instructions`, and when known `apiBaseUrl`, `webBaseUrl` (HTTPS) for manual smoke checks.
+
+The **Analyst** (or Analyst-orchestrated workflow) must treat missing **`apiBaseUrl` / `webBaseUrl`** as **actionable**: identify the blocker, fix or delegate remediation ([`.cursor/skills/phase-gate-self-heal/SKILL.md`](../skills/phase-gate-self-heal/SKILL.md), DevOps re-run, operator AWS session, OIDC/trust fixes), then **re-fetch** and align **`phase-MM-dd-yyyy-HHmmss-<n>.json`** with **`docs/evaluation-report.md`** and the latest snapshot. **Terminal** nulls for those fields are allowed only when the phase outcome is honestly **`failed_incomplete`** (or doc-only / documented gap) with reasons in **`deployCycleGate.reasons`** and matching narrative — not as an unexamined default.
+
+See [`docs/phase-evidence/README.md`](../../docs/phase-evidence/README.md) and [`.cursor/skills/analyst-evaluation-report-evidence/SKILL.md`](../skills/analyst-evaluation-report-evidence/SKILL.md).

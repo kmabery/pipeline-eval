@@ -1,0 +1,45 @@
+# POSTs JSON to an optional monitor URL when CI-CD-Deploy or CI fails (for Slack, PagerDuty, or a custom listener).
+# Prefer repository secret PIPELINE_MONITOR_WEBHOOK_URL.
+# Complements in-session polling per .cursor/rules/ci-pipeline-monitoring.mdc — webhooks alert; agents still poll when asked.
+name: Pipeline webhook notify
+
+on:
+  workflow_run:
+    workflows:
+      - CI-CD-Deploy
+      - CI
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: POST run payload to monitor webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.PIPELINE_MONITOR_WEBHOOK_URL }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "PIPELINE_MONITOR_WEBHOOK_URL not set; skipping."
+            exit 0
+          fi
+          payload=$(jq -n \
+            --arg repo "$REPO" \
+            --arg workflow "$RUN_NAME" \
+            --argjson run_id "$RUN_ID" \
+            --arg conclusion "$CONCLUSION" \
+            --arg url "$RUN_URL" \
+            --arg branch "$HEAD_BRANCH" \
+            --arg event "workflow_run.completed" \
+            '{event: $event, repository: $repo, workflow: $workflow, run_id: $run_id, conclusion: $conclusion, html_url: $url, head_branch: $branch}')
+          curl -sS -X POST -H "Content-Type: application/json" -d "$payload" "$WEBHOOK_URL"

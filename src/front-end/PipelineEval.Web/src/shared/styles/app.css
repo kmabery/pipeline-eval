@@ -1,0 +1,427 @@
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-7) clamp(var(--space-4), 3vw, var(--space-6)) var(--space-10);
+  text-align: left;
+}
+
+.header {
+  margin-bottom: var(--space-6);
+}
+
+.auth-screen .header h1 {
+  margin: 0 0 var(--space-2);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.form-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-tight);
+}
+
+.form-new h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.app-shell {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  gap: 0;
+}
+
+/* Drawer lives in a display:contents host so the inline NavDrawer can
+   participate in the shell flex layout. When the drawer is open we give
+   the main column a visible gutter so body copy does not sit flush against
+   the drawer's trailing edge. */
+.nav-drawer-host {
+  display: contents;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding-top: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-section);
+}
+
+.nav-drawer-host[data-nav-open='true'] + .app-main {
+  padding-left: var(--space-6);
+}
+
+.content-section {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--space-9);
+}
+
+.header-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+}
+
+.header-brand {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-title {
+  margin: 0;
+  letter-spacing: -0.02em;
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.auth-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.auth-tabs button {
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.auth-tabs button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.auth-tabs button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.banner-info {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.small {
+  font-size: 0.85rem;
+  margin: 0 0 var(--space-3);
+}
+
+.lede {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 55ch;
+}
+
+.banner {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 8px;
+  margin: var(--space-4) 0 var(--space-5);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.banner-error {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--text);
+}
+
+.dialog-error {
+  margin: 0 0 var(--space-4);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: var(--space-5) var(--space-5) var(--space-6);
+  box-shadow: var(--shadow);
+}
+
+.section-heading {
+  display: block;
+  margin: 0;
+}
+
+.empty-state {
+  max-width: 48ch;
+  margin: 0;
+}
+
+.new-task-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-tight);
+}
+
+.new-task-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.new-task-file-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.optional-tag {
+  font-weight: normal;
+  font-size: 0.85rem;
+}
+
+.new-task-dialog-actions {
+  margin-top: var(--space-1);
+  padding-top: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Auth screen and legacy markup */
+.field input,
+.field textarea {
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: var(--space-2) var(--space-3);
+  transition: background 0.2s ease-out, border-color 0.2s ease-out, filter 0.2s ease-out;
+}
+
+.btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--accent) 70%, #000);
+}
+
+.btn.primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.btn.secondary {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn.secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-2) 85%, var(--accent));
+}
+
+.btn.danger.ghost {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  color: var(--danger);
+}
+
+.btn.danger.ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-tight);
+}
+
+.todo {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-5);
+}
+
+.todo.done .todo-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.todo-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.check input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0.2rem 0 0;
+  flex-shrink: 0;
+}
+
+.todo-title {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+/* Notes + meta share a single indent derived from the checkbox width + gap
+   above, so they line up with the title regardless of the platform's native
+   checkbox rendering (previous hardcoded 1.5rem drifted on some browsers). */
+.todo-body {
+  padding-left: calc(1rem + var(--space-3));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.todo-notes {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.todo-meta {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.todo-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.thumb-link {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  line-height: 0;
+}
+
+.thumb {
+  width: 96px;
+  height: 96px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.upload-label {
+  display: inline-block;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.dialog-invite-lede {
+  margin: 0 0 var(--space-4);
+}
+
+.invite-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-tight);
+}
+
+.invite-dialog-actions {
+  margin-top: var(--space-2);
+  padding-top: 0;
+}
+
+.todo-side .btn-ghost-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.todo-side .btn-ghost-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}

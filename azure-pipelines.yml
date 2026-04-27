@@ -1,0 +1,275 @@
+# Azure DevOps mirror of .github/workflows/ci-cd-deploy.yml.
+# Stages: CI -> Deploy (with environment 'production' approvals) -> DeployedSmoke.
+# Source: GitHub repo kmabery/pipeline-eval (via service connection).
+# AWS auth: workload identity service connection (OIDC) -> IAM role from iac/terraform/iam_ado.tf.
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - docs/*
+
+pr: none
+
+resources:
+  repositories:
+    - repository: self
+      type: github
+      name: kmabery/pipeline-eval
+      endpoint: github-kmabery-pipeline-eval
+
+variables:
+  - name: AWS_REGION
+    value: us-east-1
+  - name: DOTNET_VERSION
+    value: "10.0.x"
+  - name: NODE_VERSION
+    value: "22"
+  - name: AWS_SERVICE_CONNECTION
+    value: aws-pipeline-eval
+  - name: WEB_PATH
+    value: src/front-end/PipelineEval.Web
+
+stages:
+  # ---------- CI (mirrors reusable-ci.yml) ----------
+  - stage: CI
+    displayName: CI build + test
+    jobs:
+      - job: build
+        displayName: dotnet + web + terraform
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+            fetchDepth: 1
+
+          - task: UseDotNet@2
+            displayName: Setup .NET 10
+            inputs:
+              packageType: sdk
+              version: $(DOTNET_VERSION)
+
+          - script: |
+              set -euo pipefail
+              dotnet restore src/services/PipelineEval.Api/PipelineEval.Api.csproj
+              dotnet build src/services/PipelineEval.Api/PipelineEval.Api.csproj -c Release --no-restore
+            displayName: Restore + build API
+
+          - script: |
+              set -euo pipefail
+              dotnet restore src/gateway/PipelineEval.Gateway/PipelineEval.Gateway.csproj
+              dotnet build src/gateway/PipelineEval.Gateway/PipelineEval.Gateway.csproj -c Release --no-restore
+            displayName: Restore + build Gateway
+
+          - script: dotnet test tests/PipelineEval.UnitTests/PipelineEval.UnitTests.csproj -c Release --logger "trx;LogFileName=unit.trx" --results-directory $(Agent.TempDirectory)/test-results
+            displayName: Unit tests (.NET)
+
+          - script: dotnet test tests/PipelineEval.IntegrationTests/PipelineEval.IntegrationTests.csproj -c Release --logger "trx;LogFileName=integration.trx" --results-directory $(Agent.TempDirectory)/test-results
+            displayName: Integration tests (.NET, in-memory API)
+
+          - script: dotnet test tests/PipelineEval.E2ETests/PipelineEval.E2ETests.csproj -c Release --logger "trx;LogFileName=e2e.trx" --results-directory $(Agent.TempDirectory)/test-results
+            displayName: E2E tests (Aspire AppHost)
+
+          - task: PublishTestResults@2
+            displayName: Publish .NET test results
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: "$(Agent.TempDirectory)/test-results/*.trx"
+              mergeTestResults: true
+
+          - task: NodeTool@0
+            displayName: Setup Node 22
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: |
+              set -euo pipefail
+              npm ci
+              npm test
+              npm run build
+            workingDirectory: $(WEB_PATH)
+            displayName: Build web (npm ci + test + build)
+
+          - task: TerraformInstaller@1
+            displayName: Setup Terraform
+            inputs:
+              terraformVersion: 1.9.0
+
+          - script: |
+              set -euo pipefail
+              terraform fmt -check -recursive
+              terraform init -backend=false
+              terraform validate
+            workingDirectory: iac/terraform
+            displayName: Terraform fmt and validate
+
+  # ---------- Deploy (mirrors reusable-cd-deploy.yml) ----------
+  - stage: Deploy
+    displayName: CD deploy (production)
+    dependsOn: CI
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: deploy
+        displayName: ECR push + S3 sync + CloudFront invalidate + ECS deploy
+        pool:
+          vmImage: ubuntu-latest
+        environment: production # ADO Environment with required approvers, mirrors GH Environment "production"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 1
+
+                - task: NodeTool@0
+                  displayName: Setup Node 22
+                  inputs:
+                    versionSpec: $(NODE_VERSION)
+
+                - script: |
+                    set -euo pipefail
+                    npm ci
+                    npm run build
+                  workingDirectory: $(WEB_PATH)
+                  displayName: Build web bundle for S3 sync
+                  env:
+                    VITE_API_URL: $(CLOUDFRONT_WEB_URL)
+                    VITE_COGNITO_USER_POOL_ID: $(COGNITO_USER_POOL_ID)
+                    VITE_COGNITO_CLIENT_ID: $(COGNITO_CLIENT_ID)
+                    VITE_COGNITO_REGION: $(AWS_REGION)
+                    VITE_APP_VERSION: $(Build.SourceVersion)
+
+                - task: AWSShellScript@1
+                  displayName: Login to ECR + push API + gateway images
+                  inputs:
+                    awsCredentials: $(AWS_SERVICE_CONNECTION)
+                    regionName: $(AWS_REGION)
+                    scriptType: inline
+                    inlineScript: |
+                      set -euo pipefail
+                      ECR_REGISTRY=$(aws ecr describe-registry --query 'registryId' --output text).dkr.ecr.$(AWS_REGION).amazonaws.com
+                      aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+                      IMAGE_TAG=$(Build.SourceVersion)
+                      API_URI=$ECR_REGISTRY/$(ECR_REPOSITORY_NAME):$IMAGE_TAG
+                      docker build -t $API_URI -f src/services/PipelineEval.Api/Dockerfile .
+                      docker push $API_URI
+                      docker tag $API_URI $ECR_REGISTRY/$(ECR_REPOSITORY_NAME):latest
+                      docker push $ECR_REGISTRY/$(ECR_REPOSITORY_NAME):latest
+
+                      GW_REPO="$(ECR_GATEWAY_REPOSITORY_NAME)"
+                      if [ -z "$GW_REPO" ]; then
+                        GW_REPO="$(ECR_REPOSITORY_NAME)"
+                        GW_REPO="${GW_REPO%-api}-gateway"
+                      fi
+                      GW_URI=$ECR_REGISTRY/$GW_REPO:$IMAGE_TAG
+                      docker build -t "$GW_URI" -f src/gateway/PipelineEval.Gateway/Dockerfile .
+                      docker push "$GW_URI"
+                      docker tag "$GW_URI" "$ECR_REGISTRY/$GW_REPO:latest"
+                      docker push "$ECR_REGISTRY/$GW_REPO:latest"
+
+                - task: AWSShellScript@1
+                  displayName: Sync web -> S3
+                  inputs:
+                    awsCredentials: $(AWS_SERVICE_CONNECTION)
+                    regionName: $(AWS_REGION)
+                    scriptType: inline
+                    inlineScript: |
+                      set -euo pipefail
+                      aws s3 sync $(WEB_PATH)/dist/ s3://$(WEB_BUCKET_NAME)/ --delete
+
+                - task: AWSShellScript@1
+                  displayName: Invalidate CloudFront
+                  inputs:
+                    awsCredentials: $(AWS_SERVICE_CONNECTION)
+                    regionName: $(AWS_REGION)
+                    scriptType: inline
+                    inlineScript: |
+                      set -euo pipefail
+                      aws cloudfront create-invalidation --distribution-id $(CLOUDFRONT_DISTRIBUTION_ID) --paths "/*"
+
+                - task: AWSShellScript@1
+                  displayName: Force new ECS deployment (API + gateway)
+                  inputs:
+                    awsCredentials: $(AWS_SERVICE_CONNECTION)
+                    regionName: $(AWS_REGION)
+                    scriptType: inline
+                    inlineScript: |
+                      set -euo pipefail
+                      test -n "$(ECS_CLUSTER_NAME)"
+                      test -n "$(ECS_SERVICE_API)"
+                      test -n "$(ECS_SERVICE_GATEWAY)"
+                      aws ecs update-service --region $(AWS_REGION) --cluster $(ECS_CLUSTER_NAME) --service $(ECS_SERVICE_API) --force-new-deployment --no-cli-pager
+                      aws ecs update-service --region $(AWS_REGION) --cluster $(ECS_CLUSTER_NAME) --service $(ECS_SERVICE_GATEWAY) --force-new-deployment --no-cli-pager
+                      aws ecs wait services-stable --region $(AWS_REGION) --cluster $(ECS_CLUSTER_NAME) --services $(ECS_SERVICE_API) $(ECS_SERVICE_GATEWAY)
+
+  # ---------- DeployedSmoke (mirrors deployed-smoke job) ----------
+  - stage: DeployedSmoke
+    displayName: Deployed smoke (Playwright)
+    dependsOn: Deploy
+    condition: succeeded()
+    jobs:
+      - job: smoke
+        displayName: Playwright deployed
+        pool:
+          vmImage: ubuntu-latest
+        timeoutInMinutes: 20
+        variables:
+          E2E_BASE_URL: $(CLOUDFRONT_WEB_URL)
+        steps:
+          - checkout: self
+            fetchDepth: 1
+
+          - task: NodeTool@0
+            displayName: Setup Node 22
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: npm ci
+            workingDirectory: $(WEB_PATH)
+            displayName: Install web deps
+
+          - script: npx playwright install --with-deps chromium
+            workingDirectory: $(WEB_PATH)
+            displayName: Install Playwright browsers
+
+          - script: |
+              set -euo pipefail
+              api="$(API_PUBLIC_URL)"
+              for i in $(seq 1 60); do
+                code=$(curl -s -o /dev/null -w "%{http_code}" "$api/health" || true)
+                echo "attempt $i -> $code"
+                if [ "$code" = "200" ]; then exit 0; fi
+                sleep 5
+              done
+              echo "API $api/health never returned 200"
+              exit 1
+            displayName: Wait for API /health
+
+          - script: npx playwright test --project=deployed
+            workingDirectory: $(WEB_PATH)
+            displayName: Playwright deployed smoke
+            env:
+              E2E_TEST_EMAIL: $(E2E_TEST_EMAIL)
+              E2E_TEST_PASSWORD: $(E2E_TEST_PASSWORD)
+
+          - task: PublishPipelineArtifact@1
+            displayName: Upload Playwright report
+            condition: always()
+            inputs:
+              targetPath: $(WEB_PATH)/playwright-report
+              artifact: playwright-report
+              publishLocation: pipeline
+            continueOnError: true
+
+          - task: PublishPipelineArtifact@1
+            displayName: Upload Playwright test-results
+            condition: always()
+            inputs:
+              targetPath: $(WEB_PATH)/test-results
+              artifact: playwright-test-results
+              publishLocation: pipeline
+            continueOnError: true

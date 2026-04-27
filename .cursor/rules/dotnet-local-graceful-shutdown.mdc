@@ -1,0 +1,10 @@
+---
+description: Stop local dotnet/Aspire hosts with Ctrl+C in the hosting terminal; avoid PID kill for interactive dev
+alwaysApply: true
+---
+
+# Local .NET hosts — graceful shutdown
+
+- If **`dotnet run`**, **`dotnet watch`**, or the **Aspire AppHost** was started in the **integrated terminal**, **stop it in that same terminal** with **Ctrl+C**. Do **not** stop it by targeting the process ID (no `taskkill`, `Stop-Process`, or `Process.Kill` for normal shutdown of interactive dev servers).
+- **Headless** processes (tests, scripts, background jobs without a TTY) may use process-based teardown; on **Unix**, prefer **SIGINT** (e.g. `kill -INT <pid>`) before **`SIGKILL`** when implementing automated teardown in code.
+- Canonical detail for agents: interactive = Ctrl+C in-terminal; automated = signal-first where supported, then force kill if needed.

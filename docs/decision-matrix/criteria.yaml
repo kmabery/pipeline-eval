@@ -1,0 +1,61 @@
+criteria:
+  - id: approval
+    name: approval
+    group: core
+    weight: 40
+    whyItMatters: Required in workflows
+    evidenceToCollect: links to docs
+    vendors:
+      gha:
+        rating: tbd
+        label: ''
+        citations: []
+        notes: ''
+        updatedInPhase: 
+      ado:
+        rating: tbd
+        label: ''
+        citations: []
+        notes: ''
+        updatedInPhase: 
+    commonNotes: 
+  - id: package
+    name: package management
+    group: core
+    weight: 40
+    whyItMatters: npm and NuGet are required artifacts
+    evidenceToCollect: pricing pages
+    vendors:
+      gha:
+        rating: tbd
+        label: ''
+        citations: []
+        notes: ''
+        updatedInPhase: 
+      ado:
+        rating: tbd
+        label: ''
+        citations: []
+        notes: ''
+        updatedInPhase: 
+    commonNotes: 
+  - id: webhook
+    name: Web hook monitoring
+    group: agents
+    weight: 20
+    whyItMatters: monitoring success of pipelines
+    evidenceToCollect: POC notes
+    vendors:
+      gha:
+        rating: tbd
+        label: ''
+        citations: []
+        notes: ''
+        updatedInPhase: 
+      ado:
+        rating: tbd
+        label: ''
+        citations: []
+        notes: ''
+        updatedInPhase: 
+    commonNotes: 

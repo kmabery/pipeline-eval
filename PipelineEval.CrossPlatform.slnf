@@ -1,0 +1,13 @@
+{
+  "solution": {
+    "path": "PipelineEval.slnx",
+    "projects": [
+      "src\\PipelineEval.Host\\PipelineEval.Host.csproj",
+      "src\\libraries\\Observability\\PipelineEval.Observability\\PipelineEval.Observability.csproj",
+      "src\\services\\PipelineEval.Api\\PipelineEval.Api.csproj",
+      "tests\\PipelineEval.UnitTests\\PipelineEval.UnitTests.csproj",
+    "tests\\PipelineEval.IntegrationTests\\PipelineEval.IntegrationTests.csproj",
+    "tests\\PipelineEval.E2ETests\\PipelineEval.E2ETests.csproj"
+    ]
+  }
+}

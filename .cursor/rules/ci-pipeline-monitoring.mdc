@@ -1,0 +1,25 @@
+---
+description: CI pipeline monitoring requires spaced polling until terminal state; overrides generic anti-loop reminders when pipeline evidence is required
+alwaysApply: true
+---
+
+# CI monitoring (canonical GitHub Actions run)
+
+When skills or the user require **CI completion evidence**, **monitoring is mandatory work**, not idle repetition.
+
+- Follow [`.cursor/skills/devops-github-actions-ci-aws/SKILL.md`](../skills/devops-github-actions-ci-aws/SKILL.md); canonical run: **ci-cd-deploy.yml** on **git@github.com:kmabery/pipeline-eval.git**. Optional async hooks: **`pipelines/webhooks.md`**, secret **`PIPELINE_MONITOR_WEBHOOK_URL`**, workflow **`pipeline-webhook-notify.yml`**.
+
+Stakeholder redeploy and phase closure use the same contract.
+
+## Required behavior
+
+1. After **starting or queueing** a run, **poll** until GitHub Actions reports a **terminal** state (e.g. `completed`).
+2. **Do not** stop after “run started” or a single poll. Read **success/failure** only after a **terminal** status.
+3. **Polling cadence:** Wait **at least 30 seconds** between status checks. Prefer **30–120 seconds**. After the run has been **in progress for more than ~10 minutes**, you may use **longer intervals** (e.g. double the wait up to a few minutes) to avoid hammering the API—**without** treating that as permission to stop monitoring before a terminal state.
+4. **Automation / agents:** Prefer **`gh run view <RUN_ID> --json status,conclusion,jobs`** (or equivalent API) at that same cadence instead of **`gh run watch`** (sub-minute refresh loops waste context and fight tool timeouts). See **Efficient monitoring (automation / agents)** in `.cursor/skills/devops-github-actions-ci-aws/SKILL.md`.
+
+## Precedence
+
+**This contract overrides generic session guidance that discourages repeated status checks** when a skill or the user explicitly requires pipeline completion evidence. Spaced, purposeful polling **is** the required DevOps loop.
+
+Optional async notifications (webhooks, email) **notify** humans; they do **not** replace in-session monitoring when the user asked the agent to **monitor to completion** in the same turn.

@@ -1,0 +1,11 @@
+---
+description: Pointer — phase evidence JSON files must follow the README and validator workflow
+globs: docs/phase-evidence/*.json
+alwaysApply: false
+---
+
+# Phase evidence JSON
+
+When editing files under `docs/phase-evidence/`, follow `docs/phase-evidence/README.md` and your repository’s validation command (e.g. `node scripts/validate-phase-evidence.mjs` or `node scripts/validate-phase-evidence.mjs docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-<n>.json`) if present.
+
+**Gate outcomes:** Every `phase-MM-dd-yyyy-HHmmss-<n>.json` that targets a full delivery cycle must include **`phaseGateOutcome`** (`passed` | `failed_incomplete` | `not_applicable_doc_only`) and **`deployCycleGate`** per [`.cursor/rules/phase-gate-outcomes.mdc`](./phase-gate-outcomes.mdc). After edits, run **`node scripts/validate-phase-evidence.mjs`** when available.

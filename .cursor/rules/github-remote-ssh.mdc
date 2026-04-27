@@ -1,0 +1,12 @@
+---
+description: Prefer SSH for Git operations to GitHub; verify remotes; never commit secrets
+alwaysApply: true
+---
+
+# GitHub remote (SSH)
+
+For this repository, treat **`git@github.com:kmabery/pipeline-eval.git`** as the canonical clone/push URL. Prefer **SSH** for Git fetch/push from agents and docs; confirm with `git remote -v` in the workspace.
+
+**Default branch for handoffs:** **`main`** unless your pipeline or workflow explicitly builds another branch.
+
+Do **not** store private keys, PATs, or `gh` tokens in the repository. See [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).

@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PipelineEval.Host/PipelineEval.Host.csproj" />
+  </Folder>
+  <Folder Name="/src/libraries/">
+    <Project Path="src/libraries/Observability/PipelineEval.Observability.CoralogixOtel/PipelineEval.Observability.CoralogixOtel.csproj" />
+    <Project Path="src/libraries/Observability/PipelineEval.Observability/PipelineEval.Observability.csproj" />
+    <Project Path="src/libraries/Observability/SampleWinFormsApp/SampleWinFormsApp.csproj" />
+    <Project Path="src/libraries/Observability/SampleWindowsService/SampleWindowsService.csproj" />
+  </Folder>
+  <Folder Name="/src/gateway/">
+    <Project Path="src/gateway/PipelineEval.Gateway/PipelineEval.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/services/">
+    <Project Path="src/services/PipelineEval.Api/PipelineEval.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PipelineEval.UnitTests/PipelineEval.UnitTests.csproj" />
+    <Project Path="tests/PipelineEval.IntegrationTests/PipelineEval.IntegrationTests.csproj" />
+    <Project Path="tests/PipelineEval.E2ETests/PipelineEval.E2ETests.csproj" />
+  </Folder>
+</Solution>

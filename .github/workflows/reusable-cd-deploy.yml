@@ -1,0 +1,110 @@
+# Deploy job only — run after reusable CI succeeds. Approval: GitHub Environment "production".
+# OIDC: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
+name: Reusable CD deploy
+
+on:
+  workflow_call:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  DOTNET_VERSION: "10.0.x"
+  NODE_VERSION: "22"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/front-end/PipelineEval.Web/package-lock.json
+
+      - name: Build web (for S3 sync)
+        working-directory: src/front-end/PipelineEval.Web
+        env:
+          VITE_API_URL: ${{ vars.CLOUDFRONT_WEB_URL }}
+          VITE_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+          VITE_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
+          VITE_COGNITO_REGION: ${{ vars.AWS_REGION }}
+          VITE_CORALOGIX_RUM_PUBLIC_KEY: ${{ secrets.CORALOGIX_RUM_PUBLIC_KEY }}
+          VITE_CORALOGIX_DOMAIN: ${{ vars.CORALOGIX_DOMAIN }}
+          VITE_APP_VERSION: ${{ github.sha }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push API image
+        id: image_api
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          API_URI=$ECR_REGISTRY/${{ vars.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
+          docker build -t $API_URI -f src/services/PipelineEval.Api/Dockerfile .
+          docker push $API_URI
+          docker tag $API_URI $ECR_REGISTRY/${{ vars.ECR_REPOSITORY_NAME }}:latest
+          docker push $ECR_REGISTRY/${{ vars.ECR_REPOSITORY_NAME }}:latest
+          echo "api_image_uri=$ECR_REGISTRY/${{ vars.ECR_REPOSITORY_NAME }}:latest" >> $GITHUB_OUTPUT
+
+      - name: Build and push gateway image
+        id: image_gateway
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_API_REPO: ${{ vars.ECR_REPOSITORY_NAME }}
+          ECR_GW_REPO_VAR: ${{ vars.ECR_GATEWAY_REPOSITORY_NAME }}
+        run: |
+          set -euo pipefail
+          GW_REPO="${ECR_GW_REPO_VAR:-}"
+          if [ -z "$GW_REPO" ]; then
+            # Terraform ECR names: ${name_prefix}-api / ${name_prefix}-gateway (see iac/terraform/ecr.tf)
+            GW_REPO="${ECR_API_REPO%-api}-gateway"
+          fi
+          test -n "$GW_REPO"
+          GW_URI=$ECR_REGISTRY/$GW_REPO:$IMAGE_TAG
+          docker build -t "$GW_URI" -f src/gateway/PipelineEval.Gateway/Dockerfile .
+          docker push "$GW_URI"
+          docker tag "$GW_URI" "$ECR_REGISTRY/$GW_REPO:latest"
+          docker push "$ECR_REGISTRY/$GW_REPO:latest"
+          echo "gateway_image_uri=$ECR_REGISTRY/$GW_REPO:latest" >> $GITHUB_OUTPUT
+
+      - name: Sync web to S3
+        run: |
+          aws s3 sync src/front-end/PipelineEval.Web/dist/ s3://${{ vars.WEB_BUCKET_NAME }}/ --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+
+      - name: Force new ECS deployment (API + gateway)
+        env:
+          CLUSTER: ${{ vars.ECS_CLUSTER_NAME }}
+          SVC_API: ${{ vars.ECS_SERVICE_API }}
+          SVC_GW: ${{ vars.ECS_SERVICE_GATEWAY }}
+        run: |
+          set -euo pipefail
+          test -n "$CLUSTER"
+          test -n "$SVC_API"
+          test -n "$SVC_GW"
+          REGION="${{ env.AWS_REGION }}"
+          aws ecs update-service --region "$REGION" --cluster "$CLUSTER" --service "$SVC_API" --force-new-deployment --no-cli-pager
+          aws ecs update-service --region "$REGION" --cluster "$CLUSTER" --service "$SVC_GW" --force-new-deployment --no-cli-pager
+          aws ecs wait services-stable --region "$REGION" --cluster "$CLUSTER" --services "$SVC_API" "$SVC_GW"

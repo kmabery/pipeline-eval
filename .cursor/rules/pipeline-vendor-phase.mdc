@@ -1,0 +1,47 @@
+---
+description: GitHub Actions vs Azure DevOps evaluation — lock vendor phase; edit only the current vendor's column in docs/decision-matrix/criteria.yaml
+alwaysApply: true
+---
+
+# Pipeline vendor phase (GitHub Actions vs Azure DevOps program)
+
+<!-- Generated from .cursor/plans/evaluation-topic.yaml by `cursorpack eval sync`. See .cursor/plans/eval-pack-generator.md. -->
+
+Applies when work follows [`docs/phase-plan.md`](../../docs/phase-plan.md), [`docs/evaluation-report.md`](../../docs/evaluation-report.md), or [`docs/decision-matrix/criteria.yaml`](../../docs/decision-matrix/criteria.yaml) for the pipeline vendor evaluation.
+
+## Before editing the decision matrix or vendor evidence
+
+1. Read **`docs/phase-plan.md`** (phase table) and **`docs/evaluation-report.md`** (phase-scope banner).
+2. If present, read **`docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-<n>.json`** for `phase`, `vendorPhase`, and `scope`.
+3. Optionally read [`.cursor/skills/pipeline-evaluation-phases/SKILL.md`](../skills/pipeline-evaluation-phases/SKILL.md) for the phase map.
+
+## Phase map
+
+| Phase | Vendor lock | What SDET may edit in `docs/decision-matrix/criteria.yaml` |
+|-------|-------------|------------------------------------------------------------|
+| **1** | **GitHub Actions** only | `vendors.gha.*` for every criterion |
+| **2** | **Azure DevOps** only | `vendors.ado.*` for every criterion |
+| **3** | Final matrix (Analyst-only) | **No vendor-cell edits.** Analyst computes weighted signals, writes gap list + recommendation |
+
+Do **not** interleave vendors in one phase pass. Finish the current vendor column before opening the next phase.
+
+## Per-phase dos and don'ts
+
+### Phase 1 — GitHub Actions
+
+- **Do:** walk every criterion in `criteria.yaml` and set `vendors.gha.{rating,label,citations,notes,updatedInPhase: 1}`.
+- **Don't:** edit `vendors.ado.*` (leave it `tbd`).
+
+### Phase 2 — Azure DevOps
+
+- **Do:** walk every criterion and set `vendors.ado.{...,updatedInPhase: 2}`.
+- **Don't:** edit `vendors.gha.*`.
+
+### Phase 3 — Final matrix
+
+- **Do:** compute weighted signals, produce `synthesis.gapList[]`, write `synthesis.recommendation`, render the final snapshot.
+- **Don't:** touch any vendor cell. If a vendor cell is still `tbd`, reopen the relevant vendor phase first.
+
+## Full delivery cycle vs doc-only
+
+If a phase is labeled **doc-only** or waives deploy evidence in **`docs/phase-plan.md`**, still obey the vendor-column lock above. **Verified** / **Complete** language remains governed by [`.cursor/rules/phase-closure-gate.mdc`](phase-closure-gate.mdc).

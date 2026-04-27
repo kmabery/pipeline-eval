@@ -1,0 +1,22 @@
+{
+  "name": "pipeline-eval-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev scripts for the GitHub Actions vs Azure DevOps pipeline evaluation. Production code lives under src/ (.NET) and src/front-end/PipelineEval.Web/ (Vite).",
+  "scripts": {
+    "validate:matrix": "node scripts/validate-decision-matrix.mjs",
+    "validate:evidence": "node scripts/validate-phase-evidence.mjs",
+    "render:matrix": "node scripts/render-decision-matrix.mjs",
+    "render:phase-plan": "node scripts/render-decision-matrix.mjs --target phase-plan",
+    "render:index": "node scripts/render-decision-matrix.mjs --target index"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

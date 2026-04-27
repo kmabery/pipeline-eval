@@ -1,0 +1,46 @@
+---
+description: A phase cannot be Complete or Verified without deploy validation, AWS CLI architecture drift check (when applicable), SDET deploy-window observability evidence, Analyst alignment, and evidence files committed to main
+alwaysApply: true
+---
+
+# Phase closure gate
+
+Applies to **phase** work, **evaluation-report** updates, and any user request to **complete**, **close**, **verify**, or **finish** a phase (including a phase pass or rerun).
+
+**Canonical CI** is **GitHub Actions** (workflow **`ci-cd-deploy.yml`** on **`git@github.com:kmabery/pipeline-eval.git`**).
+
+## Forbidden language (unless all checklist items below are true)
+
+Do **not** call a phase **Complete**, **Verified**, **closed**, **done**, or equivalent unless **all** of the following hold:
+
+1. **DevOps — succeeded workflow run:** A recorded **run ID** for workflow **`ci-cd-deploy.yml`** on repository **`git@github.com:kmabery/pipeline-eval.git`** shows **success** (or equivalent) with **every** required job green for your workflow (including **deploy** and **post-deploy validation** as defined in **`.github/workflows/`**). **Queued** or **in progress** is **not** closure. Pushes use **`main`** on **`git@github.com:kmabery/pipeline-eval.git`** per [`.cursor/rules/github-remote-ssh.mdc`](../rules/github-remote-ssh.mdc).
+
+2. **AWS Solution Architect — architecture drift (deploy evidence in scope):** For phases that require **deployed** validation (not an explicit **doc-only** exception in `docs/phase-plan.md`), the report or archived snapshot records a **passed** read-only **AWS CLI** drift check against **`docs/architecture/`** and **`iac/terraform/`** for that deploy window, per [`.cursor/agents/aws-solution-architect.md`](../agents/aws-solution-architect.md) and [`.cursor/cursor-orchestrator.md`](../cursor-orchestrator.md). **Failed** drift without remediation is **not** closure; use **`phaseGateOutcome`: `failed_incomplete`** per [`.cursor/rules/phase-gate-outcomes.mdc`](./phase-gate-outcomes.mdc).
+
+3. **Observability (SDET):** `docs/evaluation-report.md` (index) and/or the **latest archived snapshot** under `docs/evaluation-reports/` contain **deploy-window observability evidence** (metrics, CLI output, vendor tenant URLs, or similar) **tied to that build/deploy window** — produced by the SDET validator per [`.cursor/skills/sdet-phase-evidence/SKILL.md`](../skills/sdet-phase-evidence/SKILL.md) — **or** an **explicit documented gap** (why observability was not available—not silence).
+
+4. **Pipeline run URL (phases 1-2):** For vendor phases (phase 1 GitHub Actions, phase 2 Azure DevOps), `docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-<n>.json` must include a non-empty HTTPS `evidenceLinks.pipelineRunUrl` for that vendor's pipeline (GitHub Actions run URL in phase 1; Azure DevOps build URL in phase 2). This is the deep link to the **succeeded** pipeline run that produced the deploy. **If no pipeline run URL can be captured, the full phase run is not successful** — set `phaseGateOutcome: failed_incomplete` per [`.cursor/rules/phase-gate-outcomes.mdc`](./phase-gate-outcomes.mdc). Documentation URLs (citations) are **not** a substitute. Phase 3 is Analyst-only and does not require a pipeline run URL.
+
+5. **Analyst:** The phase section and executive summary reflect the same — not local-only success.
+
+6. **Evidence on `main`:** When this pass **writes or updates** `docs/phase-evidence/`, `docs/evaluation-reports/`, and/or `docs/evaluation-report.md`, those changes are **committed and pushed** to **`main`** on **`git@github.com:kmabery/pipeline-eval.git`** (see [`.cursor/skills/devops-github-actions-ci-aws/SKILL.md`](../skills/devops-github-actions-ci-aws/SKILL.md) **§2b**). This applies to **`phaseGateOutcome`: `passed`**, **`failed_incomplete`**, and **doc-only** finalization — the remote must hold the same evidence the Analyst recorded, not only a local working tree.
+
+**Queueing or monitoring** CI does **not** close a phase.
+
+## Allowed language for in-flight work
+
+- **In Progress** — work started; closure conditions not yet met.
+- **Local verification complete** — Backend/React/SDET checks passed locally only; **not** phase closure.
+- **Awaiting CI** / **awaiting deploy validation** / **awaiting AWS SA drift check** / **awaiting observability** — accurate mid-flight states.
+- **Failed (incomplete)** — deploy-cycle gates did not pass after self-heal; required CI/deploy/SDET/observability evidence missing. Do **not** describe the deploy evaluation as successful.
+
+
+## Failed deploy-cycle phases
+
+If a full delivery cycle was attempted and canonical CI, deployed SDET, or observability requirements are **not** satisfied (and the phase is **not** an explicit **doc-only** exception), record **`phaseGateOutcome`: `failed_incomplete`** in `docs/phase-evidence/phase-MM-dd-yyyy-HHmmss-<n>.json` and align `docs/evaluation-report.md` and the phase snapshot under `docs/evaluation-reports/`. Agents must attempt [`.cursor/skills/phase-gate-self-heal/SKILL.md`](../skills/phase-gate-self-heal/SKILL.md) before finalizing **Failed**. See [`.cursor/rules/phase-gate-outcomes.mdc`](./phase-gate-outcomes.mdc).
+
+## Ordering (conceptual)
+
+Pre-pipeline **§2a** → deploy validation green on a succeeded CI run (when in scope) → **AWS SA** read-only **AWS CLI** architecture drift check **passed** (when deploy evidence applies) → **SDET** observability evidence or documented gap for that window → **Analyst** finalizes the report → post-evidence **§2b** (commit and push `docs/phase-evidence/`, `docs/evaluation-reports/`, `docs/evaluation-report.md`).
+
+See [`.cursor/cursor-orchestrator.md`](../cursor-orchestrator.md) and [`.cursor/skills/analyst-evaluation-report-evidence/SKILL.md`](../skills/analyst-evaluation-report-evidence/SKILL.md).

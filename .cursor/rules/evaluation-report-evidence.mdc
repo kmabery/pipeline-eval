@@ -1,0 +1,9 @@
+---
+description: Pointer — full evidence matrix lives in the analyst evaluation-report skill
+globs: docs/evaluation-report.md, docs/evaluation-reports/*.md
+alwaysApply: false
+---
+
+# Evaluation report
+
+When editing `docs/evaluation-report.md` or archived snapshots under `docs/evaluation-reports/`, follow [`.cursor/skills/analyst-evaluation-report-evidence/SKILL.md`](../skills/analyst-evaluation-report-evidence/SKILL.md).
